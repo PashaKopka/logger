@@ -67,7 +67,7 @@ class Logger:
         value_arr = []
         for value in self.fields:
             ret = eval(f'self.{value}')
-            value_arr.append(ret)
+            value_arr.append(str(ret))
         return value_arr
 
     @property
@@ -89,6 +89,10 @@ class Logger:
     @property
     def error_doc(self):
         return self.error.__doc__
+
+    @property
+    def exception_name(self):
+        return self.error.args[0]
 
     def _get_time(self):
         return time.strftime("%H:%M:%S", self.local_time)
