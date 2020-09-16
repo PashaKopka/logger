@@ -2,16 +2,43 @@ import traceback
 from datetime import datetime
 import time
 
+FIELDS = [
+    'time',
+    'date',
+    'file',
+    'error_doc',
+    'full_traceback',
+    'string_number',
+    'exeption_name'
+]
+
 
 class Logger:
 
-    def __init__(self, log_file='log_file.txt'):
+    def __init__(self, log_file='log_file.txt', fields=None):
         self.log_file = log_file
-        self.time = time.localtime()
+        self.local_time = time.localtime()
+        self.fields = fields
+
+    def save_error(self, error):
+        with open(self.log_file, 'a') as log_file:
+            log_file.write(self._make_log_string(error))
+
+    def time(self):
+        return self._get_time()
+
+    def date(self):
+        return self._get_date()
+
+    def file(self):
+        return self._get_tracback_file()
+
+    def error_doc(self):
+        return self.error.__doc__
 
     def _make_log_string(self, error):
-        file_name = traceback.StackSummary.extract(traceback.walk_stack(None))[1].filename
-        values = [self._get_time(), self._get_date(), file_name, error.__doc__]
+        self.error = error
+        values = self._get_values()
         string = ''
         i = 0
         for arg in values:
@@ -22,12 +49,22 @@ class Logger:
 
         return string + '\n'
 
-    def save_error(self, error):
-        with open(self.log_file, 'a') as log_file:
-            log_file.write(self._make_log_string(error))
+    def _get_values(self):
+        if self.fields is None:
+            return [self._get_time(), self._get_date(), self._get_tracback_file(), self.error_doc()]
+        else:
+            value_arr = []
+            for value in self.fields:
+                # value_arr.append(eval(f'self.{value}'))
+                ret = eval(f'self.{value}')()
+                value_arr.append(ret)
+            return value_arr
 
     def _get_time(self):
-        return time.strftime("%H:%M:%S", self.time)
+        return time.strftime("%H:%M:%S", self.local_time)
 
     def _get_date(self):
         return datetime.now().date()
+
+    def _get_tracback_file(self):
+        return traceback.StackSummary.extract(traceback.walk_stack(None))[1].filename
