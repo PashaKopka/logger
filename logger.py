@@ -9,7 +9,6 @@ FIELDS = [
     'date',
     'file',
     'error_doc',
-    'full_traceback',
     'line',
     'exception_name'
 ]
@@ -48,6 +47,8 @@ class LogMaker:
 class Logger:
 
     def __init__(self, log_file='log_file.txt', fields=None, named_fields=None):
+        self._input_validate(log_file, fields, named_fields)
+
         self.log_file = log_file
         self.local_time = time.localtime()
         self.fields = fields if fields else ['time', 'date', 'file', 'error_doc']
@@ -59,6 +60,8 @@ class Logger:
         self.error = None
 
     def save_error(self, error):
+        if not isinstance(error, Exception):
+            raise TypeError(f'error must be Exception type, not {type(error).__name__}')
         self.error = error
         value = self.log_maker.make_log_string(self.named_fields, self._get_values(), self.fields)
         self.file_worker.save_value(value)
@@ -96,6 +99,27 @@ class Logger:
 
     def _get_time(self):
         return time.strftime("%H:%M:%S", self.local_time)
+
+    @staticmethod
+    def _input_validate(log_file, fields, named_fields):
+        if not isinstance(log_file, str):
+            raise TypeError(f'log_file must be str, not {type(log_file).__name__}')
+        if not isinstance(fields, list) and fields is not None:
+            raise TypeError(f'fields must be list with str, not {type(fields).__name__}')
+        if fields is not None:
+            for field in fields:
+                if not isinstance(field, str):
+                    raise TypeError(f'fields must be str, not {type(field).__name__}')
+                if field not in FIELDS:
+                    raise ValueError(f'fields mus be only {FIELDS}')
+        if not isinstance(named_fields, list) and named_fields is not None:
+            raise TypeError(f'named_fields must be list with str, not {type(named_fields).__name__}')
+        if named_fields is not None:
+            for named_field in named_fields:
+                if not isinstance(named_field, str):
+                    raise TypeError(f'named_field must be str, not {type(named_field).__name__}')
+                if named_field not in FIELDS:
+                    raise ValueError(f'named_field mus be only {FIELDS}')
 
     @staticmethod
     def _get_date():
