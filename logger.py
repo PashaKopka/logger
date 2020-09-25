@@ -127,7 +127,9 @@ class Logger:
 
     @staticmethod
     def _get_tracback_file():
-        return traceback.StackSummary.extract(traceback.walk_stack(None))[-1].filename
+        for x in traceback.StackSummary.extract(traceback.walk_stack(None)):
+            if x.filename != __file__ and x.filename != '<string>':
+                return x.filename
 
     @staticmethod
     def _get_tracback_line():
