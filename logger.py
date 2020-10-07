@@ -16,7 +16,7 @@ FIELDS = [
 
 class FileWorker:
 
-    def __init__(self, file_name):
+    def __init__(self, file_name: str):
         self.file_name = file_name
 
     def save_value(self, value: str):
@@ -27,7 +27,7 @@ class FileWorker:
 class LogMaker:
 
     @staticmethod
-    def make_log_string(names, values, fields):
+    def make_log_string(names: list, values: list, fields: list) -> str:
         names = [(value if value in names else '') for value in fields]
         string = ''
         i = 0
@@ -44,34 +44,10 @@ class LogMaker:
         return string + '\n'
 
 
-class Logger:
+class AbstractLogger(ABC):
 
-    def __init__(self, log_file='log_file.txt', fields=None, named_fields=None):
-        self._input_validate(log_file, fields, named_fields)
-
-        self.log_file = log_file
-        self.local_time = time.localtime()
-        self.fields = fields if fields else ['time', 'date', 'file', 'error_doc']
-        self.named_fields = named_fields if named_fields else []
-
-        self.file_worker = FileWorker(self.log_file)
-        self.log_maker = LogMaker()
-
+    def __init__(self):
         self.error = None
-
-    def save_error(self, error):
-        if not isinstance(error, Exception):
-            raise TypeError(f'error must be Exception type, not {type(error).__name__}')
-        self.error = error
-        value = self.log_maker.make_log_string(self.named_fields, self._get_values(), self.fields)
-        self.file_worker.save_value(value)
-
-    def _get_values(self):
-        value_arr = []
-        for value in self.fields:
-            ret = eval(f'self.{value}')
-            value_arr.append(str(ret))
-        return value_arr
 
     @property
     def time(self):
@@ -97,11 +73,57 @@ class Logger:
     def exception_name(self):
         return self.error.args[0]
 
+    @abstractmethod
+    def _get_time(self):
+        pass
+
+    @abstractmethod
+    def _get_date(self):
+        pass
+
+    @abstractmethod
+    def _get_tracback_file(self):
+        pass
+
+    @abstractmethod
+    def _get_tracback_line(self):
+        pass
+
+
+class Logger:
+
+    def __init__(self, log_file='log_file.txt', fields=None, named_fields=None):
+        self._input_validate(log_file, fields, named_fields)
+
+        self.log_file = log_file
+        self.local_time = time.localtime()
+        self.fields = fields if fields else ['time', 'date', 'file', 'error_doc']
+        self.named_fields = named_fields if named_fields else []
+
+        self.file_worker = FileWorker(self.log_file)
+        self.log_maker = LogMaker()
+
+        self.error = None
+
+    def save_error(self, error: Exception):
+        if not isinstance(error, Exception):
+            raise TypeError(f'error must be Exception type, not {type(error).__name__}')
+        self.error = error
+        value = self.log_maker.make_log_string(self.named_fields, self._get_values(), self.fields)
+        self.file_worker.save_value(value)
+
+    def _get_values(self) -> list:
+        value_arr = []
+        for value in self.fields:
+            ret = eval(f'self.{value}')
+            value_arr.append(str(ret))
+        return value_arr
+
     def _get_time(self):
         return time.strftime("%H:%M:%S", self.local_time)
 
     @staticmethod
-    def _input_validate(log_file, fields, named_fields):
+    def _input_validate(log_file: str, fields: list, named_fields: list):
         if not isinstance(log_file, str):
             raise TypeError(f'log_file must be str, not {type(log_file).__name__}')
         if not isinstance(fields, list) and fields is not None:
